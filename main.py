@@ -6,42 +6,18 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import Depends, FastAPI, HTTPException, Path, Query
 import uvicorn
 
-from models.health import Health
+from utils.database import get_db
 
-port = int(os.environ.get("FASTAPIPORT", 8000))
+port = int(os.environ.get("FASTAPIPORT", 8080))
 
 app = FastAPI(
     title="Booking Service",
-    description="Booking microservice (stubbed endpoints).",
+    description="Booking microservice",
     version="0.1.0",
 )
-
-# -----------------------------------------------------------------------------
-# Health
-# -----------------------------------------------------------------------------
-def make_health(echo: Optional[str], path_echo: Optional[str] = None) -> Health:
-    return Health(
-        status=200,
-        status_message="OK",
-        timestamp=datetime.utcnow().isoformat() + "Z",
-        ip_address=socket.gethostbyname(socket.gethostname()),
-        echo=echo,
-        path_echo=path_echo,
-    )
-
-@app.get("/health", response_model=Health)
-def get_health_no_path(echo: Optional[str] = Query(None, description="Optional echo string")):
-    return make_health(echo=echo, path_echo=None)
-
-@app.get("/health/{path_echo}", response_model=Health)
-def get_health_with_path(
-    path_echo: str = Path(..., description="Required echo in the URL path"),
-    echo: Optional[str] = Query(None, description="Optional echo string"),
-):
-    return make_health(echo=echo, path_echo=path_echo)
 
 # -----------------------------------------------------------------------------
 # Booking endpoints
@@ -51,8 +27,24 @@ def create_booking():
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 @app.get("/bookings")
-def list_bookings():
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+def list_bookings(conn = Depends(get_db)):
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+                           SELECT * 
+                           FROM bookings 
+                       """)
+        
+        bookings = cursor.fetchall()
+        
+        if not bookings:
+            return {"message": "No bookings found"}
+
+        return bookings
+        
+    finally:
+        cursor.close()
 
 @app.get("/bookings/{booking_id}")
 def get_booking(booking_id: UUID):
@@ -83,7 +75,7 @@ def list_bookings_for_landlord(landlord_id: UUID):
 # -----------------------------------------------------------------------------
 @app.get("/")
 def root():
-    return {"message": "Booking Service (endpoints not implemented yet)"}
+    return {"message": "Booking Service"}
 
 # -----------------------------------------------------------------------------
 # Entrypoint
