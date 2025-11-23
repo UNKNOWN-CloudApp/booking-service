@@ -5,20 +5,28 @@ import socket
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query
 import uvicorn
 
 from utils.database import get_db
 
-port = int(os.environ.get("FASTAPIPORT", 8080))
+port = int(os.environ.get("PORT") or os.environ.get("FASTAPIPORT", 8000))
 
 app = FastAPI(
     title="Booking Service",
     description="Booking microservice",
     version="0.1.0",
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # -----------------------------------------------------------------------------
 # Booking endpoints
 # -----------------------------------------------------------------------------
