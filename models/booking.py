@@ -7,20 +7,15 @@ from pydantic import BaseModel, Field
 
 
 class BookingBase(BaseModel):
-    ID: UUID = Field(
-        default_factory=uuid4,
-        description="Persistent Booking ID (server-generated).",
-        json_schema_extra={"example": "123e4567-e89b-12d3-a456-426614174000"},
-    )
-    listingID: UUID = Field(
+    listing_id: int = Field(
         ...,
         description="ID of the listing being booked.",
-        json_schema_extra={"example": "550e8400-e29b-41d4-a716-446655440000"},
+        json_schema_extra={"example":1},
     )
-    tenantID: str = Field(
+    tenant_email: str = Field(
         ...,
-        description="ID of the tenant requesting the booking.",
-        json_schema_extra={"example": "111e8400-e29b-41d4-a716-446655440999"},
+        description="email of the tenant requesting the booking.",
+        json_schema_extra={"example": "david.lee@example.com"},
     )
     
     start_date: datetime = Field(
@@ -38,9 +33,9 @@ class BookingBase(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "ID": "123e4567-e89b-12d3-a456-426614174000",
-                    "listingID": "550e8400-e29b-41d4-a716-446655440000",
-                    "tenantID": "111e8400-e29b-41d4-a716-446655440999",
+                    "ID": 1,
+                    "listing_id": 1,
+                    "tenant_email": "david.lee@example.com",
                     "start_date": "2025-05-01T14:00:00Z",
                     "end_date": "2025-05-15T11:00:00Z",
                 }
@@ -56,8 +51,8 @@ class BookingCreate(BookingBase):
         "json_schema_extra": {
             "examples": [
                 {
-                    "listingID": "550e8400-e29b-41d4-a716-446655440000",
-                    "tenantID": "111e8400-e29b-41d4-a716-446655440999",
+                    "listing_id": 1,
+                    "tenant_email": "david.lee@example.com",
                     "start_date": "2025-05-01T14:00:00Z",
                     "end_date": "2025-05-15T11:00:00Z",
                 }
@@ -91,15 +86,15 @@ class BookingUpdate(BaseModel):
     }
 
 class BookingRead(BookingBase):
-    id: UUID
+    id: int
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "ID": "123e4567-e89b-12d3-a456-426614174000",
-                    "listingID": "550e8400-e29b-41d4-a716-446655440000",
-                    "tenantID": "111e8400-e29b-41d4-a716-446655440999",
+                    "id": 1,
+                    "listing_id": 1,
+                    "tenant_email": "david.lee@example.com",
                     "start_date": "2025-05-01T14:00:00Z",
                     "end_date": "2025-05-15T11:00:00Z",
                     "created_at": "2025-04-10T09:30:00Z",

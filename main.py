@@ -39,16 +39,16 @@ def list_all_bookings(conn = Depends(get_db)):
     if USE_MOCK:
         return [
             BookingRead(
-                id="11111111-2222-3333-4444-555555555555",
-                listingID="aaaa1111-bbbb-2222-cccc-333333333333",
-                tenantID="mock-user-123",
+                id=1,
+                listing_id= 1,
+                tenant_email= "david.lee@example.com",
                 start_date="2025-04-01",
                 end_date="2025-04-05",
             ),
             BookingRead(
-                id="22222222-3333-4444-5555-666666666666",
-                listingID="dddd4444-eeee-5555-ffff-666666666666",
-                tenantID="mock-user-123",
+                id=2,
+                listing_id= 3,
+                tenant_email= "eva.chen@example.com",
                 start_date="2025-05-10",
                 end_date="2025-05-15",
             )
@@ -72,14 +72,14 @@ def list_all_bookings(conn = Depends(get_db)):
     finally:
         cursor.close()
 
-@app.get("/bookings/{tenantID}", response_model=list[BookingRead])
-def list_bookings_by_user(tenantID: str, conn=Depends(get_db)):
+@app.get("/bookings/{tenant_email}", response_model=list[BookingRead])
+def list_bookings_by_user(tenant_email: str, conn=Depends(get_db)):
     if USE_MOCK:
         return [
             BookingRead(
-                id="99999999-aaaa-bbbb-cccc-dddddddddddd",
-                listingID="aaaa1111-bbbb-2222-cccc-333333333333",
-                tenantID=tenantID,
+                id=1,
+                listing_id= 1,
+                tenant_email= "david.lee@example.com",
                 start_date="2025-06-01",
                 end_date="2025-06-07",
             )
@@ -104,21 +104,21 @@ def list_bookings_by_user(tenantID: str, conn=Depends(get_db)):
     finally:
         cursor.close()
 
-@app.get("/bookings/{listingID}")
-def list_bookings_by_listing(listingID: str, conn = Depends(get_db)):
+@app.get("/bookings/{listing_id}")
+def list_bookings_by_listing(listing_id: str, conn = Depends(get_db)):
     if USE_MOCK:
         return [
             {
-                "id": "mock-booking-1",
-                "listingID": listingID,     
-                "tenantID": "mock-user-123",
+                "id": 1,
+                "listing_id": 1,
+                "tenant_email": "david.lee@example.com",
                 "start_date": "2025-06-01",
                 "end_date": "2025-06-05"
             },
             {
-                "id": "mock-booking-2",
-                "listingIID": listingID,
-                "tenantenantIDt_id": "mock-user-456",
+                "id": 2,
+                "listing_id": 3,
+                "tenant_email": "eva.chen@example.com",
                 "start_date": "2025-07-10",
                 "end_date": "2025-07-12"
             }
@@ -129,7 +129,7 @@ def list_bookings_by_listing(listingID: str, conn = Depends(get_db)):
         cursor.execute("""
                            SELECT * 
                            FROM bookings 
-                           WHERE listingID = %s
+                           WHERE listing_id = %s
                        """)
         
         bookings = cursor.fetchall()
@@ -146,9 +146,9 @@ def list_bookings_by_listing(listingID: str, conn = Depends(get_db)):
 def create_booking(payload: BookingCreate):
     if USE_MOCK:
         return BookingRead(
-            id="11111111-2222-3333-4444-555555555555",
-            listingID=payload.listingID,
-            tenantID=payload.tenantID,
+            id=3,
+            listing_id=payload.listing_id,
+            tenant_email=payload.tenant_email,
             start_date=payload.start_date,
             end_date=payload.end_date,
         )
@@ -160,12 +160,12 @@ def create_booking(payload: BookingCreate):
 
         cursor.execute(
             """
-            INSERT INTO Booking (ID, ListingID, TenantID, start_date, end_date)
+            INSERT INTO Booking (ID, listing_id, tenant_email, start_date, end_date)
             """,
             (
                 str(booking_id),
-                str(payload.listingID),
-                payload.tenantID,
+                str(payload.listing_id),
+                payload.tenant_email,
                 payload.start_date,
                 payload.end_date,
             ),
@@ -175,7 +175,7 @@ def create_booking(payload: BookingCreate):
         cursor.close()
 
 @app.delete("/bookings/{booking_id}", status_code=204)
-def delete_booking(booking_id: UUID, conn=Depends(get_db)):
+def delete_booking(booking_id: int, conn=Depends(get_db)):
     if USE_MOCK:
         return
 
