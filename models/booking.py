@@ -23,8 +23,8 @@ class BookingBase(BaseModel):
         description="Start date/time of the rental period (UTC).",
         json_schema_extra={"example": "2025-05-01T14:00:00Z"},
     )
-    end_date: datetime = Field(
-        ...,
+    end_date: Optional[datetime] = Field(
+        None,
         description="End date/time of the rental period (UTC).",
         json_schema_extra={"example": "2025-05-15T11:00:00Z"},
     )
@@ -97,8 +97,6 @@ class BookingRead(BookingBase):
                     "tenant_email": "david.lee@example.com",
                     "start_date": "2025-05-01T14:00:00Z",
                     "end_date": "2025-05-15T11:00:00Z",
-                    "created_at": "2025-04-10T09:30:00Z",
-                    "updated_at": "2025-04-12T16:45:00Z",
                 }
             ]
         }

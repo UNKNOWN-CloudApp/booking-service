@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query
 import uvicorn
-from models.booking import BookingCreate, BookingRead
+from models.booking import BookingCreate, BookingRead, BookingUpdate
 from utils.database import get_db
 
 port = int(os.environ.get("PORT") or os.environ.get("FASTAPIPORT", 8080))
@@ -31,29 +31,9 @@ app.add_middleware(
 # Booking endpoints
 # -----------------------------------------------------------------------------
 
-# mock version
-USE_MOCK = True
 
 @app.get("/bookings/all", response_model=list[BookingRead])
 def list_all_bookings(conn = Depends(get_db)):
-    if USE_MOCK:
-        return [
-            BookingRead(
-                id=1,
-                listing_id= 1,
-                tenant_email= "david.lee@example.com",
-                start_date="2025-04-01",
-                end_date="2025-04-05",
-            ),
-            BookingRead(
-                id=2,
-                listing_id= 3,
-                tenant_email= "eva.chen@example.com",
-                start_date="2025-05-10",
-                end_date="2025-05-15",
-            )
-        ]
-
     cursor = conn.cursor(dictionary=True)
     
     try:
@@ -65,25 +45,16 @@ def list_all_bookings(conn = Depends(get_db)):
         bookings = cursor.fetchall()
         
         if not bookings:
-            return {"message": "No bookings found"}
+            raise HTTPException(status_code = 404, detail = "No bookings found")
 
         return bookings
         
     finally:
         cursor.close()
 
-@app.get("/bookings/{tenant_email}", response_model=list[BookingRead])
+
+@app.get("/bookings/tenant/{tenant_email}", response_model=list[BookingRead])
 def list_bookings_by_user(tenant_email: str, conn=Depends(get_db)):
-    if USE_MOCK:
-        return [
-            BookingRead(
-                id=1,
-                listing_id= 1,
-                tenant_email= "david.lee@example.com",
-                start_date="2025-06-01",
-                end_date="2025-06-07",
-            )
-        ]
 
     cursor = conn.cursor(dictionary=True)
 
@@ -91,38 +62,22 @@ def list_bookings_by_user(tenant_email: str, conn=Depends(get_db)):
         cursor.execute("""
                            SELECT * 
                            FROM bookings 
-                           WHERE tenentID = %s
-                       """)
+                           WHERE tenant_email = %s
+                       """, (tenant_email,))
         
         bookings = cursor.fetchall()
         
         if not bookings:
-            return {"message": "No bookings found"}
+            raise HTTPException(status_code = 404, detail = "No bookings found")
+
 
         return bookings
         
     finally:
         cursor.close()
 
-@app.get("/bookings/{listing_id}")
-def list_bookings_by_listing(listing_id: str, conn = Depends(get_db)):
-    if USE_MOCK:
-        return [
-            {
-                "id": 1,
-                "listing_id": 1,
-                "tenant_email": "david.lee@example.com",
-                "start_date": "2025-06-01",
-                "end_date": "2025-06-05"
-            },
-            {
-                "id": 2,
-                "listing_id": 3,
-                "tenant_email": "eva.chen@example.com",
-                "start_date": "2025-07-10",
-                "end_date": "2025-07-12"
-            }
-        ]
+@app.get("/bookings/listing/{listing_id}", response_model=list[BookingRead])
+def list_bookings_by_listing(listing_id: int, conn = Depends(get_db)):
     cursor = conn.cursor(dictionary=True)
 
     try:
@@ -130,78 +85,122 @@ def list_bookings_by_listing(listing_id: str, conn = Depends(get_db)):
                            SELECT * 
                            FROM bookings 
                            WHERE listing_id = %s
-                       """)
+                       """, (listing_id,))
         
         bookings = cursor.fetchall()
         
         if not bookings:
-            return {"message": "No bookings found"}
+            raise HTTPException(status_code = 404, detail = "No bookings found")
 
         return bookings
         
     finally:
         cursor.close()
 
-@app.post("/bookings", status_code=201)
-def create_booking(payload: BookingCreate):
-    if USE_MOCK:
-        return BookingRead(
-            id=3,
-            listing_id=payload.listing_id,
-            tenant_email=payload.tenant_email,
-            start_date=payload.start_date,
-            end_date=payload.end_date,
-        )
-
+@app.post("/bookings", status_code=201, response_model=BookingRead)
+def create_booking(payload: BookingCreate, conn = Depends(get_db)):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        booking_id = uuid4()
-
         cursor.execute(
             """
-            INSERT INTO Booking (ID, listing_id, tenant_email, start_date, end_date)
+            INSERT INTO bookings (listing_id, tenant_email, start_date, end_date)
+            VALUES (%s, %s, %s, %s)
             """,
             (
-                str(booking_id),
-                str(payload.listing_id),
+                payload.listing_id,
                 payload.tenant_email,
                 payload.start_date,
                 payload.end_date,
             ),
         )
-        
+
+        conn.commit()
+
+        new_id = cursor.lastrowid
+
+        cursor.execute(
+            """
+            SELECT id, listing_id, tenant_email, start_date, end_date
+            FROM bookings
+            WHERE id = %s
+            """,
+            (new_id,),
+        )
+        new_booking = cursor.fetchone()
+
+        return new_booking
+
     finally:
         cursor.close()
 
+
 @app.delete("/bookings/{booking_id}", status_code=204)
 def delete_booking(booking_id: int, conn=Depends(get_db)):
-    if USE_MOCK:
-        return
-
     cursor = conn.cursor()
     try:
         cursor.execute(
             """
-            DELETE FROM Booking WHERE ID = %s
+            DELETE 
+            FROM bookings
+            WHERE id = %s
             """,
-            (str(booking_id),)
-        )
+            (booking_id,),)
+        
         conn.commit()
 
         if cursor.rowcount == 0:
-            # No booking deleted → booking doesn't exist
             raise HTTPException(status_code=404, detail="Booking not found")
 
         # 204 = No Content → return nothing
-        return
+        return None
 
     finally:
         cursor.close()
 
-@app.put("/bookings/{booking_id}/reject")
-def reject_booking(booking_id: UUID):
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+@app.put("/bookings/update/{booking_id}", response_model=BookingRead)
+def update_booking(
+    booking_id: int,
+    payload: BookingUpdate,     
+    conn = Depends(get_db),
+):
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            "SELECT * FROM bookings WHERE id = %s",
+            (booking_id,),
+        )
+        existing = cursor.fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        updated_start = payload.start_date or existing["start_date"]
+        updated_end = payload.end_date or existing["end_date"]
+
+        cursor.execute(
+            """
+            UPDATE bookings
+            SET start_date = %s,
+                end_date = %s
+            WHERE id = %s
+            """,
+            (updated_start, updated_end, booking_id),
+        )
+        conn.commit()
+
+        cursor.execute(
+            """
+            SELECT id, listing_id, tenant_email, start_date, end_date
+            FROM bookings
+            WHERE id = %s
+            """,
+            (booking_id,),
+        )
+        return cursor.fetchone()
+
+    finally:
+        cursor.close()
 
 # -----------------------------------------------------------------------------
 # Root
