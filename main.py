@@ -7,6 +7,7 @@ from typing import Optional
 from uuid import UUID
 from fastapi.middleware.cors import CORSMiddleware
 
+from utils.pubsub_events import publish_new_record_trigger
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query
 import uvicorn
@@ -119,6 +120,16 @@ def create_booking(payload: BookingCreate, conn = Depends(get_db)):
 
         new_id = cursor.lastrowid
 
+        # Publish Pub/Sub event after DB commit
+        try:
+            publish_new_record_trigger(
+                record_id=str(new_id),
+                client_name=payload.tenant_email, 
+            )
+        except Exception as e:
+            # Log but do not fail the request
+            print(f"Pub/Sub error (ignored): {e}")
+
         cursor.execute(
             """
             SELECT id, listing_id, tenant_email, start_date, end_date
@@ -133,6 +144,7 @@ def create_booking(payload: BookingCreate, conn = Depends(get_db)):
 
     finally:
         cursor.close()
+
 
 
 @app.delete("/bookings/{booking_id}", status_code=204)
