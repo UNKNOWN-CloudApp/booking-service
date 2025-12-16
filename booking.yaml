@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: Booking Service
+  description: Booking microservice
+  version: 1.0.0
+
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/columbiauniversity-6e1/Booking/1.0.0
+  - url: http://localhost:8080
+
+paths:
+  /:
+    get:
+      summary: Root
+      operationId: root__
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required: [message]
+              example:
+                message: "Booking Service"
+
+  /bookings/all:
+    get:
+      summary: List all bookings
+      operationId: list_all_bookings_bookings_all_get
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingRead"
+        "404":
+          description: No bookings found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+              example:
+                detail: "No bookings found"
+
+  /bookings/tenant/{tenant_email}:
+    get:
+      summary: List bookings by tenant email
+      operationId: list_bookings_by_user_bookings_tenant__tenant_email__get
+      parameters:
+        - name: tenant_email
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tenant email
+          example: "david.lee@example.com"
+      responses:
+        "200":
+          description: List of bookings for tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingRead"
+        "404":
+          description: No bookings found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+              example:
+                detail: "No bookings found"
+
+  /bookings/listing/{listing_id}:
+    get:
+      summary: List bookings by listing id
+      operationId: list_bookings_by_listing_bookings_listing__listing_id__get
+      parameters:
+        - name: listing_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Listing ID
+          example: 1
+      responses:
+        "200":
+          description: List of bookings for listing
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingRead"
+        "404":
+          description: No bookings found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+              example:
+                detail: "No bookings found"
+
+  /bookings:
+    post:
+      summary: Create booking
+      operationId: create_booking_bookings_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingCreate"
+            examples:
+              default:
+                value:
+                  listing_id: 1
+                  tenant_email: "david.lee@example.com"
+                  start_date: "2025-05-01T14:00:00Z"
+                  end_date: "2025-05-15T11:00:00Z"
+      responses:
+        "201":
+          description: Created booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingRead"
+              examples:
+                default:
+                  value:
+                    id: 1
+                    listing_id: 1
+                    tenant_email: "david.lee@example.com"
+                    start_date: "2025-05-01T14:00:00Z"
+                    end_date: "2025-05-15T11:00:00Z"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+  /bookings/{booking_id}:
+    delete:
+      summary: Delete booking
+      operationId: delete_booking_bookings__booking_id__delete
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Booking ID
+          example: 1
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+              example:
+                detail: "Booking not found"
+
+  /bookings/update/{booking_id}:
+    put:
+      summary: Update booking (partial)
+      description: Partial update; booking ID is taken from the path, not the body.
+      operationId: update_booking_bookings_update__booking_id__put
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Booking ID
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingUpdate"
+            examples:
+              default:
+                value:
+                  start_date: "2025-05-02T10:00:00Z"
+                  end_date: "2025-05-16T11:00:00Z"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingRead"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+              example:
+                detail: "Booking not found"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+components:
+  schemas:
+    BookingBase:
+      type: object
+      properties:
+        listing_id:
+          type: integer
+          description: ID of the listing being booked.
+          example: 1
+        tenant_email:
+          type: string
+          description: email of the tenant requesting the booking.
+          example: "david.lee@example.com"
+        start_date:
+          type: string
+          format: date-time
+          description: Start date of the sublease.
+          example: "2025-05-01T14:00:00Z"
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date of the sublease.
+          example: "2025-05-15T11:00:00Z"
+      required:
+        - listing_id
+        - tenant_email
+        - start_date
+      example:
+        listing_id: 1
+        tenant_email: "david.lee@example.com"
+        start_date: "2025-05-01T14:00:00Z"
+        end_date: "2025-05-15T11:00:00Z"
+
+    BookingCreate:
+      allOf:
+        - $ref: "#/components/schemas/BookingBase"
+      description: Creation payload; ID is generated server-side.
+      example:
+        listing_id: 1
+        tenant_email: "david.lee@example.com"
+        start_date: "2025-05-01T14:00:00Z"
+        end_date: "2025-05-15T11:00:00Z"
+
+    BookingUpdate:
+      type: object
+      description: Update start/end date
+      properties:
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Updated start date.
+          example: "2025-05-02T10:00:00Z"
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Updated end date.
+          example: "2025-05-16T11:00:00Z"
+      additionalProperties: false
+      example:
+        start_date: "2025-05-02T10:00:00Z"
+        end_date: "2025-05-16T11:00:00Z"
+
+    BookingRead:
+      allOf:
+        - $ref: "#/components/schemas/BookingBase"
+        - type: object
+          properties:
+            id:
+              type: integer
+          required: [id]
+      example:
+        id: 1
+        listing_id: 1
+        tenant_email: "david.lee@example.com"
+        start_date: "2025-05-01T14:00:00Z"
+        end_date: "2025-05-15T11:00:00Z"
+
+    HTTPError:
+      type: object
+      properties:
+        detail:
+          oneOf:
+            - type: string
+            - type: object
+            - type: array
+      required: [detail]
+
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+      required: [detail]
